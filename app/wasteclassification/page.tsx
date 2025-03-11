@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useRef, useEffect, useState } from "react";
 import "../globals.css";
 import { useRouter } from 'next/navigation'
+import io from 'socket.io-client';
 
 export default function CameraStream() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -16,23 +17,31 @@ export default function CameraStream() {
   const [wasteType, setWasteType] = useState("");
   const [docId, setDocId] = useState("");
   const [wasteTypeId, setWasteTypeId] = useState("");
+  const [userid , setUserid] = useState("");
 
-  const maxFrames = 2; // กำหนดให้ถ่าย 20 ครั้ง
+  const maxFrames = 1; // กำหนดให้ถ่าย 20 ครั้ง
   const [frameCount, setFrameCount] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
   const router = useRouter()
   const [open, setOpen] = useState(false);
-  const [point , setPoint] = useState(20)
-  const [userid , setUserid] = useState('')
+  const [point , setPoint] = useState(0)
+
   const [countdown, setCountdown] = useState(0);
   const [errorResult, setErrorResult] = useState(false);
-
+  const [sensor, setSensor] = useState(false);
+  const socket = io('http://192.168.1.121:3001');
   
-  useEffect(() => {
-    
-  }, []);
+
+
   useEffect(() => {
     try {
+      const storedId = localStorage.getItem("userId"); // ดึงค่าจาก Local Storage
+        console.log(storedId)
+        if (storedId) {
+          setUserid(storedId);
+        }else{
+          router.push('/')
+      }
       navigator.mediaDevices
       .getUserMedia({ video: true })
       .then((videoStream) => {
@@ -40,11 +49,8 @@ export default function CameraStream() {
         if (videoRef.current) {
           videoRef.current.srcObject = videoStream;
         }
-        const storedId = localStorage.getItem("userId"); // ดึงค่าจาก Local Storage
-        console.log(storedId)
-        if (storedId) {
-          setUserid(storedId);
-        }
+        
+        
         startCapture()
       })
       .catch((error) => router.push('/home'));
@@ -86,23 +92,7 @@ export default function CameraStream() {
     setIsCapturing(true); // เริ่มถ่ายภาพ
   };
 
-  useEffect(() => {
-    if (stream == null) {
-      return;
-    }
-    if (isCapturing == false) {
-      return;
-    }
-    if (frameCount >= maxFrames) {
-      return;
-    };
 
-    const interval = setInterval(() => {
-      captureFrame();
-      setFrameCount(prev => prev + 1);
-    }, 500); // ถ่ายทุกๆ 500ms
-    return () => clearInterval(interval);
-  }, [isCapturing, frameCount]); // เรียกซ้ำเมื่อ frameCount เปลี่ยน
 
   const startCaptureAgain = () => {
     setErrorResult(false)
@@ -111,15 +101,71 @@ export default function CameraStream() {
     setIsCapturing(true); // เริ่มถ่ายภาพ
   };
 
+  const saveWasteManagement = async (docid:any , waste_type_id:any) => {
+    try {
+      console.log("docId", docId)
+      const response = await fetch("https://192.168.1.121:8000/saveWasteManagement/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          document_id: docid,
+          garbage_type_sensor: true,
+          user_id: userid,
+          waste_type: waste_type_id,
+        }),
+      });
+
+      const result = await response.json();
+
+      console.log(result);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  
+  const updatePoint = async (point:any) => {
+    try {
+      const response = await fetch("https://192.168.1.121:8000/updateUserPoint/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id : userid,
+          additional_point : point,
+        }),
+      });
+
+      const result = await response.json();
+
+      console.log(result);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  
+  const checkSensor = () => {
+    return true;
+  };
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     stopCamera();
     if (open) {
-      setCountdown(100); // รีเซ็ตตัวนับถอยหลังทุกครั้งที่เปิด Modal
-
+      setCountdown(5); // รีเซ็ตตัวนับถอยหลังทุกครั้งที่เปิด Modal
       timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev === 1) {
+            var sensor = checkSensor();
+            if (sensor == true) {
+              
+            }else{
+              alert("Please put the waste in the correct place")
+            }
             setOpen(false); // ปิด Modal เมื่อถึง 0
             router.push('/')
             clearInterval(timer);
@@ -159,7 +205,7 @@ export default function CameraStream() {
           method: "POST",
           body: formData,
         });
-        console.log("hello")
+
         const result = await response.json();
         setWaste(result.detected_class)
         setDocId(result.document_id)
@@ -168,10 +214,9 @@ export default function CameraStream() {
         setDetectionImage(`data:image/jpeg;base64,${result.processed_image}`)
         setPoint(result.point)
         console.log(result);
-        // setTimeout(() => {
-        //     stopCamera();
-        //   }, 5000);
-
+        saveWasteManagement(result.document_id , result.waste_type_id );
+        updatePoint(result.point);
+        console.log(socket.id)
         
       } catch (error) {
         console.error("Error uploading frame:", error);
@@ -187,7 +232,7 @@ export default function CameraStream() {
       <video autoPlay muted loop id="myVideo">
             <source src="./space-bg.mp4"></source>
         </video>
-      <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-4 z-10 rounded-xl" />
+      <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-3 z-10 rounded-xl" />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -206,6 +251,7 @@ export default function CameraStream() {
               Your waste : <b>{waste}</b>
               <br />
               Points received : <b>{point}</b>
+              <br />
             </DialogDescription>
           </DialogHeader>
           <DialogClose asChild>

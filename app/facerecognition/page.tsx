@@ -200,7 +200,6 @@ const page = () => {
           
         setIsUploading(true);
         try {
-  
           const response = await fetch("https://192.168.1.121:8000/upload_face/", {
             method: "POST",
             body: formData,
@@ -243,7 +242,7 @@ const page = () => {
         <video autoPlay muted loop id="myVideo">
             <source src="./space-bg.mp4"></source>
         </video>
-        <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-4 z-10 rounded-xl" />
+        <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-3 z-10 rounded-xl" />
 
         {/* modal */}
         <Dialog open={open} onOpenChange={setOpen}>

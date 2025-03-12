@@ -29,8 +29,9 @@ export default function CameraStream() {
   const [countdown, setCountdown] = useState(0);
   const [errorResult, setErrorResult] = useState(false);
   const [sensor, setSensor] = useState(false);
-  const socket = io('http://192.168.1.121:3001');
-  
+
+  const SOCKET_SERVER_URL = "http://192.168.1.161:3002";
+  const socket = io(SOCKET_SERVER_URL, { transports: ["websocket", "polling"] });
 
 
   useEffect(() => {
@@ -90,6 +91,7 @@ export default function CameraStream() {
     setIsUploading(true)
     setFrameCount(0); // รีเซ็ตจำนวนภาพ
     setIsCapturing(true); // เริ่มถ่ายภาพ
+    
   };
 
 
@@ -216,6 +218,7 @@ export default function CameraStream() {
         console.log(result);
         saveWasteManagement(result.document_id , result.waste_type_id );
         updatePoint(result.point);
+        
         console.log(socket.id)
         
       } catch (error) {

@@ -27,7 +27,17 @@ const page = () => {
     const [countdown, setCountdown] = useState(10);
     const [countdownbackhome, setCountdownbackhome] = useState(5);
     const [back, setBack] = useState(false);
-    
+    const [ip, setIp] = useState("");
+
+
+    useEffect(() => {
+      fetch("http://192.168.1.121:3000/api/get-ip")
+        .then((res) => res.json())
+        .then((data) => setIp(data.ip))
+        .catch((err) => console.error("Error fetching IP:", err));
+    }, []);
+  
+
     const openCamera = async () => {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -47,7 +57,8 @@ const page = () => {
           }
         } else {
           console.log("No camera found");
-          router.push("/home");
+          alert("No camera found");
+          router.push("/");
         }
       } catch (error) {
         console.log(error);
@@ -301,6 +312,9 @@ const page = () => {
             <br />
             <DialogDescription>
               User Id : <b>{userid}</b>
+            </DialogDescription>
+            <DialogDescription>
+              User IP : <b>{ip}</b>
             </DialogDescription>
             <DialogDescription style={{textAlign:'center'}}>
               <br />

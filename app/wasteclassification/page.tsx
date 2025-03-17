@@ -100,7 +100,8 @@ export default function CameraStream() {
           startCapture();
         } else {
           console.log("No camera found");
-          router.push("/home");
+          alert("No camera found");
+          router.push("/");
         }
       } catch (error) {
         console.log(error);

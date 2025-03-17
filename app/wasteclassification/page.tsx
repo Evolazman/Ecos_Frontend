@@ -7,6 +7,7 @@ import "../globals.css";
 import { useRouter } from 'next/navigation'
 import io from 'socket.io-client';
 
+
 export default function CameraStream() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -30,36 +31,89 @@ export default function CameraStream() {
   const [errorResult, setErrorResult] = useState(false);
   const [sensor, setSensor] = useState(false);
 
-  const SOCKET_SERVER_URL = "http://192.168.1.161:3002";
-  const socket = io(SOCKET_SERVER_URL, { transports: ["websocket", "polling"] });
-
+  
 
   useEffect(() => {
+    const SOCKET_SERVER_URL = "http://192.168.1.161:3002";
+    const socket = io(SOCKET_SERVER_URL, { transports: ["websocket", "polling"] });
+    console.log("connecting socket... :", socket.id);
+    return () => {
+      console.log("disconnecting socket...");
+    }
+  }, [])
+  
+  const openCamera = async () => {
     try {
-      const storedId = localStorage.getItem("userId"); // ดึงค่าจาก Local Storage
-        console.log(storedId)
-        if (storedId) {
-          setUserid(storedId);
-        }else{
-          router.push('/')
-      }
-      navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then((videoStream) => {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputDevices = devices.filter(
+        (device) => device.kind === "videoinput"
+      );
+
+      if (videoInputDevices.length > 1) {
+        const firstCameraId = videoInputDevices[1].deviceId;
+        const videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: firstCameraId } },
+        });
+
         setStream(videoStream);
         if (videoRef.current) {
           videoRef.current.srcObject = videoStream;
         }
-        
-        
-        startCapture()
-      })
-      .catch((error) => router.push('/home'));
+        startCapture();
+      } else {
+        console.log("No camera found");
+        router.push("/home");
+      }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
+  };
+
+  useEffect(() => {
+    const initCamera = async () => {
+      try {
+        const storedId = localStorage.getItem("userId"); // ดึงค่าจาก Local Storage
+        console.log(storedId);
+        if (storedId) {
+          setUserid(storedId);
+        } else {
+          alert("Please Scan Your Face First");
+          router.push("/");
+          return;
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputDevices = devices.filter(
+          (device) => device.kind === "videoinput"
+        );
+
+        if (videoInputDevices.length > 1) {
+          const firstCameraId = videoInputDevices[1].deviceId;
+          const videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: firstCameraId } },
+          });
+
+          setStream(videoStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = videoStream;
+          }
+          startCapture();
+        } else {
+          console.log("No camera found");
+          router.push("/home");
+        }
+      } catch (error) {
+        console.log(error);
+        router.push("/home");
+      }
+    };
+
+    initCamera();
+
     return () => {
-      stopCamera();
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
 
@@ -76,7 +130,6 @@ export default function CameraStream() {
       return;
     }
     if (frameCount >= maxFrames) {
-      setOpen(true);
       return;
     }; // หยุดเมื่อถึง 20 ภาพ
 
@@ -97,6 +150,7 @@ export default function CameraStream() {
 
 
   const startCaptureAgain = () => {
+    openCamera();
     setErrorResult(false)
     setIsUploading(true)
     setFrameCount(0); // รีเซ็ตจำนวนภาพ
@@ -106,7 +160,7 @@ export default function CameraStream() {
   const saveWasteManagement = async (docid:any , waste_type_id:any) => {
     try {
       console.log("docId", docId)
-      const response = await fetch("https://192.168.1.121:8000/saveWasteManagement/", {
+      const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -130,7 +184,8 @@ export default function CameraStream() {
   
   const updatePoint = async (point:any) => {
     try {
-      const response = await fetch("https://192.168.1.121:8000/updateUserPoint/", {
+
+      const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,6 +236,27 @@ export default function CameraStream() {
     return () => clearInterval(timer); // เคลียร์ interval เมื่อปิด Modal
   }, [open]);
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    stopCamera();
+    if (errorResult) {
+      setCountdown(5); // รีเซ็ตตัวนับถอยหลังทุกครั้งที่เปิด Modal
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === 1) {
+            setErrorResult(false); // ปิด Modal เมื่อถึง 0
+            router.push('/')
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(timer); // เคลียร์ interval เมื่อปิด Modal
+  }, [errorResult]);
+
   const captureFrame = async () => {
 
     if (!videoRef.current) return;
@@ -203,27 +279,36 @@ export default function CameraStream() {
       setIsUploading(true);
       try {
 
-        const response = await fetch("https://192.168.1.121:8000/upload_frame/", {
+        const response = await fetch("http://192.168.1.121:8000/upload_frame/", {
           method: "POST",
           body: formData,
         });
-
-        const result = await response.json();
-        setWaste(result.detected_class)
-        setDocId(result.document_id)
-        setWasteType(result.waste_type_detected)
-        setWasteTypeId(result.waste_type_id)
-        setDetectionImage(`data:image/jpeg;base64,${result.processed_image}`)
-        setPoint(result.point)
-        console.log(result);
-        saveWasteManagement(result.document_id , result.waste_type_id );
-        updatePoint(result.point);
+        console.log(response);
+        if (response != null) {
+          setOpen(true);
+          const result = await response.json();
+          setWaste(result.detected_class)
+          setDocId(result.document_id)
+          setWasteType(result.waste_type_detected)
+          setWasteTypeId(result.waste_type_id)
+          setDetectionImage(`data:image/jpeg;base64,${result.processed_image}`)
+          setPoint(result.point)
+          console.log(result);
+          saveWasteManagement(result.document_id , result.waste_type_id );
+          updatePoint(result.point);
+          setIsCapturing(false);
+        }else{
+          setErrorResult(true)
+          setIsCapturing(false);
+          return;
+        };
         
-        console.log(socket.id)
+
         
       } catch (error) {
         console.error("Error uploading frame:", error);
         setWaste("Error uploading frame");
+        setErrorResult(true)
       }
       setIsUploading(false)
     }
@@ -260,6 +345,21 @@ export default function CameraStream() {
           <DialogClose asChild>
             <Button onClick={() => router.push('/')} variant="outline">Close in {countdown}</Button>
           </DialogClose>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={errorResult} onOpenChange={setErrorResult}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Result</DialogTitle>
+            <img src={detectionImage} style={{width : '100%'}} />
+            <DialogDescription>
+              Error : <b>{waste}</b>
+            </DialogDescription>
+            <Button onClick={startCaptureAgain} variant="outline">Try Again</Button>
+            <Button onClick={() => router.push('/')} variant="outline">Close In {countdown}</Button>
+          </DialogHeader>
+          
         </DialogContent>
       </Dialog>
 

@@ -28,29 +28,72 @@ const page = () => {
     const [countdownbackhome, setCountdownbackhome] = useState(5);
     const [back, setBack] = useState(false);
     
-    
-    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA
-    useEffect(() => {
+    const openCamera = async () => {
       try {
-        navigator.mediaDevices
-        .getUserMedia({ video: true })
-        .then((videoStream) => {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputDevices = devices.filter(
+          (device) => device.kind === "videoinput"
+        );
+  
+        if (videoInputDevices.length > 0) {
+          const firstCameraId = videoInputDevices[0].deviceId;
+          const videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: firstCameraId } },
+          });
+  
           setStream(videoStream);
           if (videoRef.current) {
             videoRef.current.srcObject = videoStream;
           }
-          startCapture()
-        })
-        .catch((error) => console.log(error));
+        } else {
+          console.log("No camera found");
+          router.push("/home");
+        }
       } catch (error) {
-        setCameraError(true)
-        setBack(true)
-        console.log(stream)
-        // alert("Error : Can't Open Camera." + error)
-        // router.push('/');
+        console.log(error);
       }
+    };
+    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA
+    useEffect(() => {
+      const initCamera = async () => {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoInputDevices = devices.filter(
+            (device) => device.kind === "videoinput"
+          );
+  
+          if (videoInputDevices.length > 0) {
+            const firstCameraId = videoInputDevices[0].deviceId;
+            const videoStream = await navigator.mediaDevices.getUserMedia({
+              video: { deviceId: { exact: firstCameraId } },
+            });
+  
+            setStream(videoStream);
+            if (videoRef.current) {
+              videoRef.current.srcObject = videoStream;
+            }
+            startCapture();
+
+          } else {
+            console.log("No camera found");
+            setCameraError(true);
+            setBack(true);
+          }
+        } catch (error) {
+          setCameraError(true);
+          setBack(true);
+          console.log("Error:", error);
+        }
+      };
+  
+      initCamera();
+      
+  
       return () => {
-        stopCamera();
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
+        
       };
     }, []);
     //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA
@@ -59,17 +102,13 @@ const page = () => {
     const stopCamera = () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
-        setStream(null);
-  
+        setStream(null); // ล้างค่า state
       }
     };
     //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA
   
     //START FACEDETECTED     //START FACEDETECTED     //START FACEDETECTED     //START FACEDETECTED     //START FACEDETECTED 
     useEffect(() => {
-      if (stream == null) {
-        return;
-      }
       if (isCapturing == false) {
         return;
       }
@@ -92,10 +131,12 @@ const page = () => {
     };
 
     const startCaptureAgain = () => {
+      openCamera();
       setErrorResult(false)
       setIsUploading(true)
-      setFrameCount(0); // รีเซ็ตจำนวนภาพ
       setIsCapturing(true); // เริ่มถ่ายภาพ
+      setFrameCount(0); // รีเซ็ตจำนวนภาพ
+      
     };
     //START FACEDETECTED     //START FACEDETECTED     //START FACEDETECTED     //START FACEDETECTED     //START FACEDETECTED 
 
@@ -106,7 +147,6 @@ const page = () => {
       stopCamera();
       if (open) {
         setCountdown(10); // รีเซ็ตตัวนับถอยหลังทุกครั้งที่เปิด Modal
-  
         timer = setInterval(() => {
           setCountdown((prev) => {
             if (prev === 1) {
@@ -129,9 +169,9 @@ const page = () => {
 
     useEffect(() => {
       let timer: NodeJS.Timeout;
+      stopCamera();
       if (errorResult) {
         setCountdown(10); // รีเซ็ตตัวนับถอยหลังทุกครั้งที่เปิด Modal
-  
         timer = setInterval(() => {
           setCountdown((prev) => {
             if (prev === 1) {
@@ -200,7 +240,7 @@ const page = () => {
           
         setIsUploading(true);
         try {
-          const response = await fetch("https://192.168.1.121:8000/upload_face/", {
+          const response = await fetch("http://192.168.1.121:8000/upload_face/", {
             method: "POST",
             body: formData,
           });
@@ -210,6 +250,7 @@ const page = () => {
           if (result.processed_image == "No face detected!") {
             console.log("No face detected! result")
             setErrorResult(true);
+            setIsCapturing(false);
             return;
           }
           else {
@@ -220,6 +261,8 @@ const page = () => {
             setDetectionImage(`data:image/jpeg;base64,${result.processed_image}`)
             console.log(result);
             setOpen(true);
+            setIsCapturing(false);
+           
             return "face detected!";
           }
           
@@ -237,6 +280,11 @@ const page = () => {
       , "image/jpeg");
     };
     //API CALL    //API CALL    //API CALL    //API CALL    //API CALL    //API CALL    //API CALL    //API CALL
+    
+    const incognito_mode = () => {
+      localStorage.setItem("userId", "65131000"); // เก็บค่าไว้
+      router.push('/wasteclassification')
+    }
   return (
     <div className="flex justify-center items-center min-h-screen">
         <video autoPlay muted loop id="myVideo">
@@ -275,7 +323,7 @@ const page = () => {
             </DialogDescription>
           </DialogHeader>
           <Button variant="outline" onClick={startCaptureAgain}>Detect faces again</Button>
-          <Button variant="outline" onClick={() => router.push('wasteclassification')}>Start Waste classification</Button>
+          <Button variant="outline" onClick={incognito_mode}>Start Waste classification with incognito mode</Button>
           <DialogClose asChild>
             <Button onClick={() => router.push('/')} variant="outline">Close in {countdown}</Button>
           </DialogClose>

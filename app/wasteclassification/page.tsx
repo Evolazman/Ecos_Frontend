@@ -29,19 +29,60 @@ export default function CameraStream() {
 
   const [countdown, setCountdown] = useState(0);
   const [errorResult, setErrorResult] = useState(false);
-  const [sensor, setSensor] = useState(false);
 
+  const [openSensor, setOpenSensor] = useState(false);
+  const [senserData, setSensorData] = useState(false);
+  const [wasteCheck, setWasteCheck] = useState(false);
   
 
-  useEffect(() => {
-    const SOCKET_SERVER_URL = "http://192.168.1.161:3002";
-    const socket = io(SOCKET_SERVER_URL, { transports: ["websocket", "polling"] });
-    console.log("connecting socket... :", socket.id);
-    return () => {
-      console.log("disconnecting socket...");
+  // useEffect(() => {
+  //   // เชื่อมต่อกับ Socket.IO Server
+  //   const socket = io('http://127.0.0.1:3002');
+  //   console.log(socket);
+  //   // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
+    
+  //   socket.on('sensor', (data) => {
+  //     console.log('Received sensor data:', data);
+  //     setSensorData(data); // อัปเดตค่า sensorData
+  //     console.log('Sensor Data:', senserData);
+  //   });
+    
+  //   // ส่งคำสั่งให้เซิร์ฟเวอร์ส่งค่า True
+  //   socket.emit('send_true');
+
+  //   // Clean up เมื่อ component ถูกลบออก
+  //   return () => {
+  //     socket.disconnect();
+  //     console.log('Socket disconnected');
+  //   };
+  // }, [openSensor]);
+
+  const sensorDetection = () => {
+    // เชื่อมต่อกับ Socket.IO Server
+    try {
+    const socket =  io('http://127.0.0.1:3002');
+    console.log(socket);
+    // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
+    
+    socket.on('sensor', (data) => {
+      console.log('Received sensor data:', data);
+      setSensorData(data); // อัปเดตค่า sensorData
+      console.log('Sensor Data1:', data);
+      return data;
+    });
+    
+    // ส่งคำสั่งให้เซิร์ฟเวอร์ส่งค่า True
+    socket.emit('send_true');
+    } catch (error) {
+      return false;
     }
-  }, [])
+
+    // Clean up เมื่อ component ถูกลบออก
+   
+
+  };
   
+
   const openCamera = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -62,7 +103,7 @@ export default function CameraStream() {
         startCapture();
       } else {
         console.log("No camera found");
-        router.push("/home");
+        // router.push("/home");
       }
     } catch (error) {
       console.log(error);
@@ -105,7 +146,7 @@ export default function CameraStream() {
         }
       } catch (error) {
         console.log(error);
-        router.push("/home");
+        // router.push("/home");
       }
     };
 
@@ -158,53 +199,6 @@ export default function CameraStream() {
     setIsCapturing(true); // เริ่มถ่ายภาพ
   };
 
-  const saveWasteManagement = async (docid:any , waste_type_id:any) => {
-    try {
-      console.log("docId", docId)
-      const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          document_id: docid,
-          garbage_type_sensor: true,
-          user_id: userid,
-          waste_type: waste_type_id,
-        }),
-      });
-
-      const result = await response.json();
-
-      console.log(result);
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
-
-  
-  const updatePoint = async (point:any) => {
-    try {
-
-      const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id : userid,
-          additional_point : point,
-        }),
-      });
-
-      const result = await response.json();
-
-      console.log(result);
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
-
   
   const checkSensor = () => {
     return true;
@@ -214,17 +208,15 @@ export default function CameraStream() {
     let timer: NodeJS.Timeout;
     stopCamera();
     if (open) {
-      setCountdown(5); // รีเซ็ตตัวนับถอยหลังทุกครั้งที่เปิด Modal
+      setCountdown(10);
+      
       timer = setInterval(() => {
         setCountdown((prev) => {
+          if (senserData != true) {
+            sensorDetection();
+          }
           if (prev === 1) {
-            var sensor = checkSensor();
-            if (sensor == true) {
-              
-            }else{
-              alert("Please put the waste in the correct place")
-            }
-            setOpen(false); // ปิด Modal เมื่อถึง 0
+            
             router.push('/')
             clearInterval(timer);
             return 0;
@@ -236,6 +228,17 @@ export default function CameraStream() {
 
     return () => clearInterval(timer); // เคลียร์ interval เมื่อปิด Modal
   }, [open]);
+ 
+  useEffect(() => {
+    if (senserData === true) {
+      // alert("Sensor Data: "+senserData)
+      setCountdown(5)
+    }
+    
+  }, [senserData])
+  
+  
+
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -258,6 +261,7 @@ export default function CameraStream() {
     return () => clearInterval(timer); // เคลียร์ interval เมื่อปิด Modal
   }, [errorResult]);
 
+  
   const captureFrame = async () => {
 
     if (!videoRef.current) return;
@@ -286,7 +290,6 @@ export default function CameraStream() {
         });
         console.log(response);
         if (response != null) {
-          setOpen(true);
           const result = await response.json();
           setWaste(result.detected_class)
           setDocId(result.document_id)
@@ -295,9 +298,10 @@ export default function CameraStream() {
           setDetectionImage(`data:image/jpeg;base64,${result.processed_image}`)
           setPoint(result.point)
           console.log(result);
-          saveWasteManagement(result.document_id , result.waste_type_id );
-          updatePoint(result.point);
-          setIsCapturing(false);
+          
+          
+          // setIsCapturing(false);
+          
         }else{
           setErrorResult(true)
           setIsCapturing(false);
@@ -312,9 +316,79 @@ export default function CameraStream() {
         setErrorResult(true)
       }
       setIsUploading(false)
+      setOpen(true);
     }
     , "image/jpeg");
   };
+
+  useEffect(() => {
+    const saveWasteManagement = async () => {
+      try {
+        console.log("docId", docId)
+        const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            document_id: docId,
+            garbage_type_sensor: true,
+            user_id: userid,
+            waste_type: wasteTypeId,
+          }),
+        });
+  
+        const result = await response.json();
+  
+        console.log(result);
+        
+        setWasteCheck(true);
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    };
+    if (senserData === true) {
+      saveWasteManagement();
+    }
+    
+  }, [senserData]);
+  
+  
+  useEffect(() => {
+    const updatePoint = async () => {
+      try {
+  
+        const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id : userid,
+            additional_point : point,
+          }),
+        });
+  
+        const result = await response.json();
+  
+        console.log("Point : "+result);
+       
+        
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    };
+    if (senserData === true) {
+      updatePoint();
+      
+    }
+    
+  }, [senserData])
+  
+
+  
+  
+
 
   return (
     <div className="flex justify-center items-center min-h-screen">
@@ -341,6 +415,11 @@ export default function CameraStream() {
               <br />
               Points received : <b>{point}</b>
               <br />
+              <p >Sensor Data : {senserData === null ? 'Waiting for data...' : senserData ? 'True' : 'False'}</p>
+              <br />
+              <p >Save Waste Data : {wasteCheck === null ? 'Waiting for data...' : wasteCheck ? 'True' : 'False'}</p>
+         
+             
             </DialogDescription>
           </DialogHeader>
           <DialogClose asChild>
@@ -361,6 +440,21 @@ export default function CameraStream() {
             <Button onClick={() => router.push('/')} variant="outline">Close In {countdown}</Button>
           </DialogHeader>
           
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openSensor} onOpenChange={setOpenSensor}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sensor</DialogTitle>
+            <img src={detectionImage} style={{width : '100%'}} />
+            <DialogDescription>
+              <p  style={{color:'#fff'}}>Sensor Data: {senserData === null ? 'Waiting for data...' : senserData ? 'True' : 'False'}</p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogClose asChild>
+            <Button onClick={() => router.push('/')} variant="outline">Close in {countdown}</Button>
+          </DialogClose>
         </DialogContent>
       </Dialog>
 

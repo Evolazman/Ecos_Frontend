@@ -1,9 +1,11 @@
 "use client";
 import React from "react";
 import "./globals.css";
-import { useEffect } from "react";
+import { useEffect , useState } from "react";
 import { useRouter } from 'next/navigation'
 import Video from "@/component/Video";
+import io from 'socket.io-client';
+
 export default function CameraStream() {
   const router = useRouter()
   useEffect(() => {
@@ -28,6 +30,7 @@ export default function CameraStream() {
         <button id="startWaste" onClick={() => router.push('/facerecognition')} style={{width : "200px" , zIndex :'10'}}>
             Start To Waste
         </button>
+        
       </div>
     </div>
   );

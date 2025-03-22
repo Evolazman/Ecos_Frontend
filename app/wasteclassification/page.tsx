@@ -415,9 +415,8 @@ export default function CameraStream() {
               <br />
               Points received : <b>{point}</b>
               <br />
-              <p >Sensor Data : {senserData === null ? 'Waiting for data...' : senserData ? 'True' : 'False'}</p>
-              <br />
-              <p >Save Waste Data : {wasteCheck === null ? 'Waiting for data...' : wasteCheck ? 'True' : 'False'}</p>
+              <p >Sensor Data : {senserData === null ? 'Waiting for data...' : senserData ? 'Success✅' : 'False❌'}</p>
+              <p >Save Waste Data : {wasteCheck === null ? 'Waiting for data...' : wasteCheck ? 'Success✅' : 'False❌'}</p>
          
              
             </DialogDescription>

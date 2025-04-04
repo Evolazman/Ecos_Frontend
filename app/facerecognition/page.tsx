@@ -65,6 +65,7 @@ const page = () => {
       }
     };
     //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA
+    
     useEffect(() => {
       const initCamera = async () => {
         try {
@@ -83,7 +84,7 @@ const page = () => {
             if (videoRef.current) {
               videoRef.current.srcObject = videoStream;
             }
-            startCapture();
+            
 
           } else {
             console.log("No camera found");
@@ -99,6 +100,7 @@ const page = () => {
   
       initCamera();
       
+      
   
       return () => {
         if (stream) {
@@ -108,6 +110,9 @@ const page = () => {
       };
     }, []);
     //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA    //OPEN CAMERA
+    useEffect(() => {
+      startCapture();
+    }, [videoRef.current]);
 
     //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA    //STOP CAMERA
     const stopCamera = () => {
@@ -175,7 +180,7 @@ const page = () => {
     }, [open]);
 
     //OPEN MODAL     //OPEN MODAL    //OPEN MODAL    //OPEN MODAL    //OPEN MODAL     //OPEN MODAL    //OPEN MODAL    //OPEN MODAL
-
+    
     //OPEN MODAL ERROR     //OPEN MODAL ERROR     //OPEN MODAL ERROR     //OPEN MODAL ERROR     //OPEN MODAL ERROR     
 
     useEffect(() => {
@@ -228,29 +233,56 @@ const page = () => {
     },[countdownbackhome])
 
 
-
+    
+    
+    const waitForVideoReady = async () => {
+      const maxAttempts = 10; // จำนวนครั้งที่พยายามรอ
+      let attempts = 0;
+      while (videoRef.current && videoRef.current.readyState < 2 && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // รอ 100ms
+        attempts++;
+      }
+      if (videoRef.current && videoRef.current.readyState < 2) {
+        console.error("Video is not ready after multiple attempts");
+        return false;
+      }else {
+        console.log("Video is ready")
+        captureFrame();
+        
+      }
+    }
+    
     //API CALL    //API CALL    //API CALL    //API CALL    //API CALL    //API CALL    //API CALL    //API CALL
     const captureFrame = async () => {
-  
-      if (!videoRef.current) return;
+      
+      if (!videoRef.current || videoRef.current.readyState < 2) {
+        console.error("Video is not ready");
+        waitForVideoReady();
+        return;
+        
+      };
       
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
       if (!context) return;
   
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = videoRef.current.videoWidth || 640; // กำหนดขนาด canvas ให้เท่ากับขนาดของ video
+      canvas.height = videoRef.current.videoHeight || 480; // กำหนดขนาด canvas ให้เท่ากับขนาดของ video
       context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-  
+      console.log("Test DrawImage")
       canvas.toBlob(async (blob) => {
-        
-        if (!blob) return;
+        console.log("Test api")
+        if (!blob) {
+          console.error("Blob is null");
+          return;
+        };
   
         const formData = new FormData();
         formData.append("file", blob, "frame.jpg");
-          
+     
         setIsUploading(true);
         try {
+      
           const response = await fetch("http://192.168.1.121:8000/upload_face/", {
             method: "POST",
             body: formData,
@@ -299,7 +331,7 @@ const page = () => {
   return (
     <div className="flex justify-center items-center min-h-screen">
         <video autoPlay muted loop id="myVideo">
-            <source src="./space-bg.mp4"></source>
+            <source src="./space-bg-low.mp4"></source>
         </video>
         <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-3 z-10 rounded-xl" />
 

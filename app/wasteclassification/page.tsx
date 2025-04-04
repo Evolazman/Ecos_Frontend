@@ -60,14 +60,14 @@ export default function CameraStream() {
   const sensorDetection = () => {
     // เชื่อมต่อกับ Socket.IO Server
     try {
-    const socket =  io('http://127.0.0.1:3002');
-    console.log(socket);
+    const socket =  io('http://192.168.1.121:3002');
+    // console.log(socket);
     // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
     
     socket.on('sensor', (data) => {
-      console.log('Received sensor data:', data);
+      // console.log('Received sensor data:', data);
       setSensorData(data); // อัปเดตค่า sensorData
-      console.log('Sensor Data1:', data);
+      // console.log('Sensor Data1:', data);
       return data;
     });
     
@@ -102,11 +102,13 @@ export default function CameraStream() {
         }
         startCapture();
       } else {
-        console.log("No camera found");
-        // router.push("/home");
+        alert("No camera found");
+        router.push("/");
       }
     } catch (error) {
       console.log(error);
+      alert("No camera found");
+      router.push("/");
     }
   };
 
@@ -138,6 +140,7 @@ export default function CameraStream() {
           if (videoRef.current) {
             videoRef.current.srcObject = videoStream;
           }
+          
           startCapture();
         } else {
           console.log("No camera found");
@@ -261,17 +264,38 @@ export default function CameraStream() {
     return () => clearInterval(timer); // เคลียร์ interval เมื่อปิด Modal
   }, [errorResult]);
 
-  
+  const waitForVideoReady = async () => {
+    const maxAttempts = 10; // จำนวนครั้งที่พยายามรอ
+    let attempts = 0;
+    while (videoRef.current && videoRef.current.readyState < 2 && attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // รอ 100ms
+      attempts++;
+    }
+    if (videoRef.current && videoRef.current.readyState < 2) {
+      console.error("Video is not ready after multiple attempts");
+      return false;
+    }else {
+      console.log("Video is ready")
+      captureFrame();
+      
+    }
+  }
+
   const captureFrame = async () => {
 
-    if (!videoRef.current) return;
+    if (!videoRef.current || videoRef.current.readyState < 2) {
+        console.error("Video is not ready");
+        waitForVideoReady();
+        return;
+        
+      };
     
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
+    canvas.width = videoRef.current.videoWidth|| 640;
+    canvas.height = videoRef.current.videoHeight || 480;
     context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob(async (blob) => {
@@ -393,7 +417,7 @@ export default function CameraStream() {
   return (
     <div className="flex justify-center items-center min-h-screen">
       <video autoPlay muted loop id="myVideo">
-            <source src="./space-bg.mp4"></source>
+            {/* <source src="./space-bg.mp4"></source> */}
         </video>
       <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-3 z-10 rounded-xl" />
 

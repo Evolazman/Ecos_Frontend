@@ -15,10 +15,12 @@ export default function CameraStream() {
     };
   }, []);
 
+  
+
   return (
     <div className="container-page">
       <video autoPlay muted playsInline loop id="myVideo">
-        <source src="./space-bg.mp4"></source>
+        <source src="./space-bg-low.mp4"></source>
       </video>
       <div className="content">
         <img src="./logo-Ecos.png" style={{width : '25%'}}></img>

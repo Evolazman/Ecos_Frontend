@@ -34,7 +34,28 @@ export default function CameraStream() {
   const [senserData, setSensorData] = useState(false);
   const [wasteCheck, setWasteCheck] = useState(false);
   
+  const [message, setMessage] = useState('')
 
+  const handleSend = async () => {
+
+    const res = await fetch('http://192.168.1.121:8000/send-fixed-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userid  // คุณจะ set ค่านี้เอง
+      })
+    })
+
+    const data = await res.json()
+    if (res.ok) {
+      setMessage('✅ Email sent successfully')
+    } else {
+      setMessage('❌ Failed: ' + data.detail)
+    }
+  }
+  
   // useEffect(() => {
   //   // เชื่อมต่อกับ Socket.IO Server
   //   const socket = io('http://127.0.0.1:3002');
@@ -211,7 +232,7 @@ export default function CameraStream() {
     let timer: NodeJS.Timeout;
     stopCamera();
     if (open) {
-      setCountdown(10);
+      setCountdown(3);
       
       timer = setInterval(() => {
         setCountdown((prev) => {
@@ -219,7 +240,9 @@ export default function CameraStream() {
             sensorDetection();
           }
           if (prev === 1) {
-            
+            if (senserData === false) {
+              handleSend();
+            }
             router.push('/')
             clearInterval(timer);
             return 0;

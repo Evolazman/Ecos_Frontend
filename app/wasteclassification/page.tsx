@@ -230,29 +230,34 @@ export default function CameraStream() {
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
+    let hasSent = false; // ✅ ป้องกันการยิงซ้ำ
+  
     stopCamera();
     if (open) {
       setCountdown(3);
-      
+  
       timer = setInterval(() => {
         setCountdown((prev) => {
-          if (senserData != true) {
+          if (!senserData) {
             sensorDetection();
           }
-          if (prev === 1) {
+  
+          if (prev === 1 && !hasSent) {
+            hasSent = true;
             if (senserData === false) {
               handleSend();
             }
-            router.push('/')
+            router.push('/');
             clearInterval(timer);
             return 0;
           }
+  
           return prev - 1;
         });
       }, 1000);
     }
-
-    return () => clearInterval(timer); // เคลียร์ interval เมื่อปิด Modal
+  
+    return () => clearInterval(timer);
   }, [open]);
  
   useEffect(() => {

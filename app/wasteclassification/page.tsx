@@ -31,7 +31,8 @@ export default function CameraStream() {
   const [errorResult, setErrorResult] = useState(false);
 
   const [openSensor, setOpenSensor] = useState(false);
-  const [senserData, setSensorData] = useState(false);
+  const [senserData, setSensorData] = useState(true);
+  const [uploadWaste, setUploadWaste] = useState(false);
   const [wasteCheck, setWasteCheck] = useState(false);
   
   const [message, setMessage] = useState('')
@@ -349,6 +350,7 @@ export default function CameraStream() {
           setWasteTypeId(result.waste_type_id)
           setDetectionImage(`data:image/jpeg;base64,${result.processed_image}`)
           setPoint(result.point)
+          setUploadWaste(true)
           console.log(result);
           
           
@@ -403,7 +405,7 @@ export default function CameraStream() {
       saveWasteManagement();
     }
     
-  }, [senserData]);
+  }, [senserData , uploadWaste ]);
   
   
   useEffect(() => {

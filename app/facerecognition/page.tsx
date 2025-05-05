@@ -87,14 +87,14 @@ const page = () => {
             
 
           } else {
-            console.log("No camera found");
-            setCameraError(true);
-            setBack(true);
+            // console.log("No camera found");
+            // setCameraError(true);
+            // setBack(true);
           }
         } catch (error) {
-          setCameraError(true);
-          setBack(true);
-          console.log("Error:", error);
+          // setCameraError(true);
+          // setBack(true);
+          // console.log("Error:", error);
         }
       };
   

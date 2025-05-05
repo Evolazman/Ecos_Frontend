@@ -31,7 +31,8 @@ export default function CameraStream() {
   const [errorResult, setErrorResult] = useState(false);
 
   const [openSensor, setOpenSensor] = useState(false);
-  const [senserData, setSensorData] = useState(true);
+  const [sensorData, setSensorData] = useState(false);
+  const [sensorDataTrigger, setSensorDataTrigger] = useState(false);
   const [uploadWaste, setUploadWaste] = useState(false);
   const [wasteCheck, setWasteCheck] = useState(false);
   
@@ -85,17 +86,21 @@ export default function CameraStream() {
     const socket =  io('http://192.168.1.121:3002');
     // console.log(socket);
     // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
-    
     socket.on('sensor', (data) => {
       // console.log('Received sensor data:', data);
       setSensorData(data); // อัปเดตค่า sensorData
+      // setSensorDataTrigger(true)
       // console.log('Sensor Data1:', data);
       return data;
     });
     
     // ส่งคำสั่งให้เซิร์ฟเวอร์ส่งค่า True
     socket.emit('send_true');
+    setSensorDataTrigger(true)
+    // setSensorData(true)
     } catch (error) {
+      
+      setSensorDataTrigger(true)
       return false;
     }
 
@@ -103,6 +108,8 @@ export default function CameraStream() {
    
 
   };
+
+
   
 
   const openCamera = async () => {
@@ -232,20 +239,21 @@ export default function CameraStream() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     let hasSent = false; // ✅ ป้องกันการยิงซ้ำ
-  
+    
     stopCamera();
     if (open) {
-      setCountdown(3);
+      setCountdown(10);
   
       timer = setInterval(() => {
         setCountdown((prev) => {
-          if (!senserData) {
+          if (!sensorData) {
             sensorDetection();
+            
           }
   
           if (prev === 1 && !hasSent) {
             hasSent = true;
-            if (senserData === false) {
+            if (sensorData === false) {
               handleSend();
             }
             router.push('/');
@@ -262,12 +270,12 @@ export default function CameraStream() {
   }, [open]);
  
   useEffect(() => {
-    if (senserData === true) {
+    if (sensorData === true) {
       // alert("Sensor Data: "+senserData)
       setCountdown(5)
     }
     
-  }, [senserData])
+  }, [sensorDataTrigger])
   
   
 
@@ -378,7 +386,7 @@ export default function CameraStream() {
   useEffect(() => {
     const saveWasteManagement = async () => {
       try {
-        console.log("docId", docId)
+        // console.log("docId", docId)
         const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
           method: "POST",
           headers: {
@@ -386,7 +394,7 @@ export default function CameraStream() {
           },
           body: JSON.stringify({
             document_id: docId,
-            garbage_type_sensor: true,
+            garbage_type_sensor: sensorData,
             user_id: userid,
             waste_type: wasteTypeId,
           }),
@@ -401,11 +409,12 @@ export default function CameraStream() {
         console.error("Error:", error);
       }
     };
-    if (senserData === true) {
-      saveWasteManagement();
-    }
+
     
-  }, [senserData , uploadWaste ]);
+    saveWasteManagement();
+    
+    
+  }, [sensorDataTrigger]);
   
   
   useEffect(() => {
@@ -432,14 +441,20 @@ export default function CameraStream() {
         console.error("Error:", error);
       }
     };
-    if (senserData === true) {
+    if (sensorData === true) {
       updatePoint();
-      
     }
     
-  }, [senserData])
+  }, [sensorDataTrigger])
   
-
+  const handleClose = () => {
+    if (sensorData == false) {
+      handleSend();
+      router.push('/')
+    }else if (sensorData == true) {
+      router.push('/')
+    }
+}
   
   
 
@@ -469,14 +484,14 @@ export default function CameraStream() {
               <br />
               Points received : <b>{point}</b>
               <br />
-              <p >Sensor Data : {senserData === null ? 'Waiting for data...' : senserData ? 'Success✅' : 'False❌'}</p>
+              <p >Sensor Data : {sensorData === null ? 'Waiting for data...' : sensorData ? 'Success✅' : 'False❌'}</p>
               <p >Save Waste Data : {wasteCheck === null ? 'Waiting for data...' : wasteCheck ? 'Success✅' : 'False❌'}</p>
          
              
             </DialogDescription>
           </DialogHeader>
           <DialogClose asChild>
-            <Button onClick={() => router.push('/')} variant="outline">Close in {countdown}</Button>
+            <Button onClick={handleClose} variant="outline">Close in {countdown}</Button>
           </DialogClose>
         </DialogContent>
       </Dialog>
@@ -502,7 +517,7 @@ export default function CameraStream() {
             <DialogTitle>Sensor</DialogTitle>
             <img src={detectionImage} style={{width : '100%'}} />
             <DialogDescription>
-              <p  style={{color:'#fff'}}>Sensor Data: {senserData === null ? 'Waiting for data...' : senserData ? 'True' : 'False'}</p>
+              <p  style={{color:'#fff'}}>Sensor Data: {sensorData === null ? 'Waiting for data...' : sensorData ? 'True' : 'False'}</p>
             </DialogDescription>
           </DialogHeader>
           <DialogClose asChild>

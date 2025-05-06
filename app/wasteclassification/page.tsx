@@ -31,7 +31,7 @@ export default function CameraStream() {
   const [errorResult, setErrorResult] = useState(false);
 
   const [openSensor, setOpenSensor] = useState(false);
-  const [sensorData, setSensorData] = useState(false);
+  const [sensorData, setSensorData] = useState(true);
   const [sensorDataTrigger, setSensorDataTrigger] = useState(false);
   const [uploadWaste, setUploadWaste] = useState(false);
   const [wasteCheck, setWasteCheck] = useState(false);
@@ -57,6 +57,15 @@ export default function CameraStream() {
       setMessage('❌ Failed: ' + data.detail)
     }
   }
+
+  const [ip, setIp] = useState("Loading...");
+
+  useEffect(() => {
+    fetch("/api/get-ip")
+      .then((res) => res.json())
+      .then((data) => setIp(data.ip))
+      .catch(() => setIp("Error fetching IP"));
+  }, []);
   
   // useEffect(() => {
   //   // เชื่อมต่อกับ Socket.IO Server
@@ -83,30 +92,28 @@ export default function CameraStream() {
   const sensorDetection = () => {
     // เชื่อมต่อกับ Socket.IO Server
     try {
-    const socket =  io('http://192.168.1.121:3002');
-    // console.log(socket);
-    // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
-    socket.on('sensor', (data) => {
-      // console.log('Received sensor data:', data);
-      setSensorData(data); // อัปเดตค่า sensorData
-      // setSensorDataTrigger(true)
-      // console.log('Sensor Data1:', data);
-      return data;
-    });
+      const socket = io(`http://${ip}:3002`);
+      // console.log(socket);
+      // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
+      socket.on('sensor', (data) => {
+        // console.log('Received sensor data:', data);
+        setSensorData(data); // อัปเดตค่า sensorData
+        // setSensorDataTrigger(true)
+        // console.log('Sensor Data1:', data);
+        return data;
+      });
     
-    // ส่งคำสั่งให้เซิร์ฟเวอร์ส่งค่า True
-    socket.emit('send_true');
-    setSensorDataTrigger(true)
-    // setSensorData(true)
-    } catch (error) {
-      
+      // ส่งคำสั่งให้เซิร์ฟเวอร์ส่งค่า True
+      socket.emit('send_true');
       setSensorDataTrigger(true)
-      return false;
-    }
+      // setSensorData(true)
+      } catch (error) {
+        
+        setSensorDataTrigger(true)
+        return false;
+      }
 
-    // Clean up เมื่อ component ถูกลบออก
-   
-
+      // Clean up เมื่อ component ถูกลบออก
   };
 
 
@@ -486,6 +493,9 @@ export default function CameraStream() {
               <br />
               <p >Sensor Data : {sensorData === null ? 'Waiting for data...' : sensorData ? 'Success✅' : 'False❌'}</p>
               <p >Save Waste Data : {wasteCheck === null ? 'Waiting for data...' : wasteCheck ? 'Success✅' : 'False❌'}</p>
+              <br />
+              IP Address : <b style={{ fontSize: 24 }}>{ip}</b>
+              
          
              
             </DialogDescription>

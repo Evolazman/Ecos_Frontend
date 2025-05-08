@@ -91,7 +91,7 @@ export default function CameraStream() {
 
   const sensorDetection = () => {
     // เชื่อมต่อกับ Socket.IO Server
-    try {
+    // try {
       const socket = io(`http://${ip}:3002`);
       // console.log(socket);
       // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
@@ -107,11 +107,11 @@ export default function CameraStream() {
       socket.emit('send_true');
       setSensorDataTrigger(true)
       // setSensorData(true)
-      } catch (error) {
+      // } catch (error) {
         
-        setSensorDataTrigger(true)
-        return false;
-      }
+      //   setSensorDataTrigger(true)
+      //   return false;
+      // }
 
       // Clean up เมื่อ component ถูกลบออก
   };
@@ -243,6 +243,25 @@ export default function CameraStream() {
     return true;
   };
 
+  const updatePoint = async () => {
+
+    console.log("User Id Check", userid)
+    const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id : userid,
+        additional_point : point,
+      }),
+    });
+
+    const result = await response.json();
+
+    console.log("Point : "+result);
+  }
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     let hasSent = false; // ✅ ป้องกันการยิงซ้ำ
@@ -262,6 +281,8 @@ export default function CameraStream() {
             hasSent = true;
             if (sensorData === false) {
               handleSend();
+            }else if (sensorData === true) {
+              updatePoint();
             }
             router.push('/');
             clearInterval(timer);
@@ -421,44 +442,45 @@ export default function CameraStream() {
     saveWasteManagement();
     
     
-  }, [sensorDataTrigger]);
+  }, [uploadWaste]);
   
   
-  useEffect(() => {
-    const updatePoint = async () => {
-      try {
+  // useEffect(() => {
+  //   const updatePoint = async () => {
+  //     try {
+  //       console.log("User Id Check", userid)
+  //       const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({
+  //           user_id : userid,
+  //           additional_point : point,
+  //         }),
+  //       });
   
-        const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_id : userid,
-            additional_point : point,
-          }),
-        });
+  //       const result = await response.json();
   
-        const result = await response.json();
-  
-        console.log("Point : "+result);
+  //       console.log("Point : "+result);
        
         
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    };
-    if (sensorData === true) {
-      updatePoint();
-    }
+  //     } catch (error) {
+  //       console.error("Error:", error);
+  //     }
+  //   };
+  //   if (sensorData === true) {
+  //     updatePoint();
+  //   }
     
-  }, [sensorDataTrigger])
+  // }, [sensorDataTrigger])
   
   const handleClose = () => {
     if (sensorData == false) {
       handleSend();
       router.push('/')
     }else if (sensorData == true) {
+      updatePoint();
       router.push('/')
     }
 }

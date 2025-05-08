@@ -31,7 +31,7 @@ export default function CameraStream() {
   const [errorResult, setErrorResult] = useState(false);
 
   const [openSensor, setOpenSensor] = useState(false);
-  const [sensorData, setSensorData] = useState(true);
+  const [sensorData, setSensorData] = useState(false);
   const [sensorDataTrigger, setSensorDataTrigger] = useState(false);
   const [uploadWaste, setUploadWaste] = useState(false);
   const [wasteCheck, setWasteCheck] = useState(false);
@@ -89,33 +89,7 @@ export default function CameraStream() {
   //   };
   // }, [openSensor]);
 
-  const sensorDetection = () => {
-    // เชื่อมต่อกับ Socket.IO Server
-    // try {
-      const socket = io(`http://${ip}:3002`);
-      // console.log(socket);
-      // ฟัง event 'sensor' ที่ส่งจากเซิร์ฟเวอร์
-      socket.on('sensor', (data) => {
-        // console.log('Received sensor data:', data);
-        setSensorData(data); // อัปเดตค่า sensorData
-        // setSensorDataTrigger(true)
-        // console.log('Sensor Data1:', data);
-        return data;
-      });
-    
-      // ส่งคำสั่งให้เซิร์ฟเวอร์ส่งค่า True
-      socket.emit('send_true');
-      setSensorDataTrigger(true)
-      // setSensorData(true)
-      // } catch (error) {
-        
-      //   setSensorDataTrigger(true)
-      //   return false;
-      // }
-
-      // Clean up เมื่อ component ถูกลบออก
-  };
-
+  
 
   
 
@@ -262,28 +236,71 @@ export default function CameraStream() {
     console.log("Point : "+result);
   }
 
+  const sensorDetection = () => {
+    // เชื่อมต่อกับ Socket.IO Server
+    const socket = io(`http://${ip}:3002`, {
+      transports: ['websocket'], // ป้องกัน fallback polling ที่ไม่จำเป็น
+    });
+  
+    // ฟัง event จาก server
+    socket.on("connect", () => {
+      console.log("✅ Connected to socket server");
+  
+      // ส่งคำสั่งให้ server เริ่มส่งข้อมูล sensor
+      socket.emit("send_true");
+      
+    });
+  
+    socket.on("sensor", (data) => {
+      console.log("📡 Received sensor data:", data);
+      setSensorData(data);
+      setSensorDataTrigger(true);
+    });
+  
+    socket.on("disconnect", () => {
+      console.log("❌ Socket disconnected");
+    });
+  
+    socket.on("connect_error", (err) => {
+      console.error("Socket connection error:", err);
+    });
+  
+    // ทำลาย socket เมื่อตัว component ถูก unmount
+    return () => {
+      if (socket) {
+        socket.disconnect();
+        console.log("🧹 Socket connection closed.");
+      }
+    };
+  };
+  
+  const hasDetected = useRef(false);
+  
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    let hasSent = false; // ✅ ป้องกันการยิงซ้ำ
-    
+    let hasSent = false;
+    let cleanupSocket: () => void; // ใช้เก็บฟังก์ชัน cleanup
+  
     stopCamera();
+  
     if (open) {
       setCountdown(10);
   
+      if (!hasDetected.current) {
+        cleanupSocket = sensorDetection(); // 🔁 เก็บฟังก์ชัน cleanup
+        hasDetected.current = true;
+      }
+  
       timer = setInterval(() => {
         setCountdown((prev) => {
-          if (!sensorData) {
-            sensorDetection();
-            
-          }
-  
           if (prev === 1 && !hasSent) {
             hasSent = true;
-            if (sensorData === false) {
-              handleSend();
-            }else if (sensorData === true) {
-              updatePoint();
+  
+            // ✅ cleanup socket ก่อนเปลี่ยนหน้า
+            if (cleanupSocket) {
+              cleanupSocket();
             }
+  
             router.push('/');
             clearInterval(timer);
             return 0;
@@ -294,8 +311,44 @@ export default function CameraStream() {
       }, 1000);
     }
   
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      // ⚠️ ยังไม่ cleanup socket ที่นี่ เพราะต้องการ cleanup หลัง push
+    };
   }, [open]);
+
+  useEffect(() => {
+    if (sensorDataTrigger) {  // เช็คว่า sensor มาจริง
+      saveWasteManagement();
+  
+      if (sensorData === false) {
+        handleSend();
+      } else if (sensorData === true) {
+        updatePoint();
+      }
+  
+      // router.push('/');
+    }
+  }, [sensorDataTrigger]);
+  
+  const handleClose = () => {
+    let cleanupSocket: () => void; // ใช้เก็บฟังก์ชัน cleanup
+    cleanupSocket = sensorDetection(); // 🔁 เก็บฟังก์ชัน cleanup
+    
+    if (sensorData == false) {
+      handleSend();
+      saveWasteManagement();
+    }else if (sensorData == true) {
+      updatePoint();
+      saveWasteManagement();
+    }
+
+    if (cleanupSocket) {
+      cleanupSocket();
+    }
+    router.push('/')
+}
+  
  
   useEffect(() => {
     if (sensorData === true) {
@@ -411,38 +464,31 @@ export default function CameraStream() {
     , "image/jpeg");
   };
 
-  useEffect(() => {
-    const saveWasteManagement = async () => {
-      try {
-        // console.log("docId", docId)
-        const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            document_id: docId,
-            garbage_type_sensor: sensorData,
-            user_id: userid,
-            waste_type: wasteTypeId,
-          }),
-        });
-  
-        const result = await response.json();
-  
-        console.log(result);
-        
-        setWasteCheck(true);
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    };
+  const saveWasteManagement = async () => {
+    try {
+      // console.log("docId", docId)
+      const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          document_id: docId,
+          garbage_type_sensor: sensorData,
+          user_id: userid,
+          waste_type: wasteTypeId,
+        }),
+      });
 
-    
-    saveWasteManagement();
-    
-    
-  }, [uploadWaste]);
+      const result = await response.json();
+
+      console.log(result);
+      
+      setWasteCheck(true);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
   
   
   // useEffect(() => {
@@ -475,15 +521,7 @@ export default function CameraStream() {
     
   // }, [sensorDataTrigger])
   
-  const handleClose = () => {
-    if (sensorData == false) {
-      handleSend();
-      router.push('/')
-    }else if (sensorData == true) {
-      updatePoint();
-      router.push('/')
-    }
-}
+
   
   
 

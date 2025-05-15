@@ -238,16 +238,21 @@ export default function CameraStream() {
 
   const sensorDetection = () => {
     // เชื่อมต่อกับ Socket.IO Server
+
     const socket = io(`http://${ip}:3002`, {
       transports: ['websocket'], // ป้องกัน fallback polling ที่ไม่จำเป็น
     });
+
+    // const socket = io(`http://192.168.1.161:3002`, {
+    //   transports: ['websocket'], // ป้องกัน fallback polling ที่ไม่จำเป็น
+    // });
   
     // ฟัง event จาก server
     socket.on("connect", () => {
       console.log("✅ Connected to socket server");
   
       // ส่งคำสั่งให้ server เริ่มส่งข้อมูล sensor
-      socket.emit("send_true");
+      socket.emit("get_sensor" , wasteType);
       
     });
   

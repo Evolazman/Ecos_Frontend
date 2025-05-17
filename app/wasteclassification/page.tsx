@@ -40,7 +40,7 @@ export default function CameraStream() {
 
   const handleSend = async () => {
 
-    const res = await fetch('http://192.168.1.121:8000/send-fixed-email', {
+    const res = await fetch('https://192.168.1.121:8000/send-fixed-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -220,7 +220,7 @@ export default function CameraStream() {
   const updatePoint = async () => {
 
     console.log("User Id Check", userid)
-    const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
+    const response = await fetch("https://192.168.1.121:8000/updateUserPoint/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -239,7 +239,7 @@ export default function CameraStream() {
   const sensorDetection = () => {
     // เชื่อมต่อกับ Socket.IO Server
 
-    const socket = io(`http://${ip}:3002`, {
+    const socket = io(`https://${ip}:3002`, {
       transports: ['websocket'], // ป้องกัน fallback polling ที่ไม่จำเป็น
     });
 
@@ -431,7 +431,7 @@ export default function CameraStream() {
       setIsUploading(true);
       try {
 
-        const response = await fetch("http://192.168.1.121:8000/upload_frame/", {
+        const response = await fetch("https://192.168.1.121:8000/upload_frame/", {
           method: "POST",
           body: formData,
         });
@@ -472,7 +472,7 @@ export default function CameraStream() {
   const saveWasteManagement = async () => {
     try {
       // console.log("docId", docId)
-      const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
+      const response = await fetch("https://192.168.1.121:8000/saveWasteManagement/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

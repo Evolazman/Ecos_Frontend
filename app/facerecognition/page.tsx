@@ -283,7 +283,7 @@ const page = () => {
         setIsUploading(true);
         try {
       
-          const response = await fetch("http://192.168.1.121:8000/upload_face/", {
+          const response = await fetch("https://192.168.1.121:8000/upload_face/", {
             method: "POST",
             body: formData,
           });

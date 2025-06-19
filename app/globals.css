@@ -113,6 +113,14 @@ body {
   text-align: center;
   padding: 0 25px 0 25px;
 }
+@media (min-width: 600px) {
+  .content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin-top: 8%;
+  }
+}
 
 .left-content {
   width: 100%;

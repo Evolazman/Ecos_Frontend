@@ -283,7 +283,7 @@ const page = () => {
         setIsUploading(true);
         try {
       
-          const response = await fetch("https://192.168.1.121:8000/upload_face/", {
+          const response = await fetch("http://192.168.1.121:8000/upload_face/", {
             method: "POST",
             body: formData,
           });
@@ -333,33 +333,38 @@ const page = () => {
         <video autoPlay muted loop id="myVideo">
             <source src="./space-bg-low.mp4"></source>
         </video>
-        <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-3 z-10 rounded-xl" />
+        <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[750px] border-3 z-10 rounded-xl" />
 
         {/* modal */}
-        <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <Dialog modal open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%] h-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Result</DialogTitle>
-            <img src={detectionImage} style={{width : '100%'}} />
-            <br />
-            <DialogDescription>
-              User Id : <b>{userid}</b>
-            </DialogDescription>
-            
-            <DialogDescription style={{textAlign:'center'}}>
-              <br />
+            <div className="flex flex-row ">
+              <img src={detectionImage} className="w-[50%] rounded-b-lg mr-10" />
               <br />
               
-            </DialogDescription>
+              <DialogDescription className="flex text-center justify-center items-center w-full ">
+                <div className="bg-[#f8f8f8] p-4 rounded-md shadow-md w-full">
+                  <h1 className="text-2xl">Your user id is <br /> <br /> <b className="text-red-500">{userid}</b></h1>
+                </div>
+              </DialogDescription>
+              
+              {/* <DialogDescription style={{textAlign:'center'}}>
+                <br />
+                <br />
+                
+              </DialogDescription> */}
+            </div>
           </DialogHeader>
           <DialogClose asChild>
-            <Button onClick={() => router.push('/wasteclassification')} variant="outline"> <b style={{color:'#ff4545' , fontSize:'16px' , textAlign:'center' ,fontWeight:'500'}}>Please put away the garbage.</b>Start in {countdown}</Button>
+            <Button className="h-20"  onClick={() => router.push('/wasteclassification')} variant="outline"> <b style={{color:'#ff4545' , fontSize:'16px' , textAlign:'center' ,fontWeight:'500'}}>Please put away the garbage.</b>Start in {countdown}</Button>
           </DialogClose>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={errorResult} onOpenChange={setErrorResult}>
-        <DialogContent>
+      <Dialog modal open={errorResult} onOpenChange={setErrorResult}>
+        <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%] h-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Error</DialogTitle>
             <DialogDescription>
@@ -374,8 +379,8 @@ const page = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={cameraError} onOpenChange={setCameraError}>
-        <DialogContent>
+      <Dialog modal open={cameraError} onOpenChange={setCameraError}>
+        <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%] h-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Error</DialogTitle>
             <DialogDescription>
@@ -384,7 +389,7 @@ const page = () => {
           </DialogHeader>
           
           <DialogClose asChild>
-            <Button onClick={() => router.push('/')} variant="outline">Close {countdownbackhome}</Button>
+            <Button onClick={() => router.push('/')} variant="outline" >Close {countdownbackhome}</Button>
           </DialogClose>
         </DialogContent>
       </Dialog>

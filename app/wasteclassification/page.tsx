@@ -40,7 +40,7 @@ export default function CameraStream() {
 
   const handleSend = async () => {
 
-    const res = await fetch('https://192.168.1.121:8000/send-fixed-email', {
+    const res = await fetch('http://192.168.1.121:8000/send-fixed-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -220,7 +220,7 @@ export default function CameraStream() {
   const updatePoint = async () => {
 
     console.log("User Id Check", userid)
-    const response = await fetch("https://192.168.1.121:8000/updateUserPoint/", {
+    const response = await fetch("http://192.168.1.121:8000/updateUserPoint/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -239,7 +239,7 @@ export default function CameraStream() {
   const sensorDetection = () => {
     // เชื่อมต่อกับ Socket.IO Server
 
-    const socket = io(`https://${ip}:3002`, {
+    const socket = io(`http://${ip}:3002`, {
       transports: ['websocket'], // ป้องกัน fallback polling ที่ไม่จำเป็น
     });
 
@@ -304,6 +304,7 @@ export default function CameraStream() {
             // ✅ cleanup socket ก่อนเปลี่ยนหน้า
             if (cleanupSocket) {
               cleanupSocket();
+              
             }
   
             router.push('/');
@@ -332,7 +333,7 @@ export default function CameraStream() {
         updatePoint();
       }
   
-      // router.push('/');
+      router.push('/');
     }
   }, [sensorDataTrigger]);
   
@@ -431,7 +432,7 @@ export default function CameraStream() {
       setIsUploading(true);
       try {
 
-        const response = await fetch("https://192.168.1.121:8000/upload_frame/", {
+        const response = await fetch("http://192.168.1.121:8000/upload_frame/", {
           method: "POST",
           body: formData,
         });
@@ -472,7 +473,7 @@ export default function CameraStream() {
   const saveWasteManagement = async () => {
     try {
       // console.log("docId", docId)
-      const response = await fetch("https://192.168.1.121:8000/saveWasteManagement/", {
+      const response = await fetch("http://192.168.1.121:8000/saveWasteManagement/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -536,58 +537,67 @@ export default function CameraStream() {
       <video autoPlay muted loop id="myVideo">
             {/* <source src="./space-bg.mp4"></source> */}
         </video>
-      <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[700px] border-3 z-10 rounded-xl" />
+      <video  ref={videoRef} autoPlay playsInline className="w-full max-w-[750px] border-3 z-10 rounded-xl" />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
+      <Dialog  modal open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%] h-auto max-h-[90vh] overflow-y-auto" >
+          <DialogHeader >
             <DialogTitle>Result</DialogTitle>
-            <img src={detectionImage} style={{width : '100%'}} />
-            <DialogDescription>
-              User Id : <b>{userid}</b>
-              <br />
-              Document ID : <b>{docId}</b>
-              <br />
-              Your waste type : <b>{wasteType}</b>
-              <br />
-              Your waste type id: <b>{wasteTypeId}</b>
-              <br />
-              Your waste : <b>{waste}</b>
-              <br />
-              Points received : <b>{point}</b>
-              <br />
-              <p >Sensor Data : {sensorData === null ? 'Waiting for data...' : sensorData ? 'Success✅' : 'False❌'}</p>
-              <p >Save Waste Data : {wasteCheck === null ? 'Waiting for data...' : wasteCheck ? 'Success✅' : 'False❌'}</p>
-              <br />
-              IP Address : <b style={{ fontSize: 24 }}>{ip}</b>
-              
-         
-             
-            </DialogDescription>
+            <div className="flex flex-row ">
+              <img  src={detectionImage} className="w-[40%] rounded-b-md mr-10" />
+              <DialogDescription>
+                <p className="text-lg font-bold">Waste Classification Result</p>
+                <br />
+                <div className="bg-[#f8f8f8] p-4 rounded-md shadow-md w-full">
+                Your waste type : <b className="text-red-500 font-bold text-lg ">{wasteType}</b>
+                <br />
+      
+                Your waste : <b>{waste}</b>
+                <br />
+                 <div className="text-xs">Your waste type id: <b>{wasteTypeId}</b></div>
+                </div>
+                 <br />
+                <p className="text-lg font-bold">Waste Management Information</p>
+                <br />
+                User Id : <b>{userid}</b>
+                {/* <br /> */}
+                {/* Document ID : <b>{docId}</b> */}
+                
+                <br />
+                Points received : <b>{point}</b>
+                <br />
+                <br />
+                <p className="text-lg font-bold">Sensor Detection Status</p>
+                <p >Sensor Data : {sensorData === null ? 'Waiting for data...' : sensorData ? 'Success✅' : 'False❌'}</p>
+                <p >Save Waste Data : {wasteCheck === null ? 'Waiting for data...' : wasteCheck ? 'Success✅' : 'False❌'}</p>
+                <br />
+                {/* IP Address : <b style={{ fontSize: 24 }}>{ip}</b> */}
+              </DialogDescription>
+            </div>
           </DialogHeader>
           <DialogClose asChild>
-            <Button onClick={handleClose} variant="outline">Close in {countdown}</Button>
+            <Button className="h-20"  onClick={handleClose} variant="outline">Close in {countdown}</Button>
           </DialogClose>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={errorResult} onOpenChange={setErrorResult}>
-        <DialogContent>
+      <Dialog modal open={errorResult} onOpenChange={setErrorResult}>
+        <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%] h-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Result</DialogTitle>
             <img src={detectionImage} style={{width : '100%'}} />
             <DialogDescription>
               Error : <b>{waste}</b>
             </DialogDescription>
-            <Button onClick={startCaptureAgain} variant="outline">Try Again</Button>
-            <Button onClick={() => router.push('/')} variant="outline">Close In {countdown}</Button>
+            <Button className="h-10"  onClick={startCaptureAgain} variant="outline">Try Again</Button>
+            <Button className="h-10"  onClick={() => router.push('/')} variant="outline">Close In {countdown}</Button>
           </DialogHeader>
           
         </DialogContent>
       </Dialog>
 
-      <Dialog open={openSensor} onOpenChange={setOpenSensor}>
-        <DialogContent>
+      <Dialog modal open={openSensor} onOpenChange={setOpenSensor}>
+        <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%] h-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Sensor</DialogTitle>
             <img src={detectionImage} style={{width : '100%'}} />
@@ -596,7 +606,7 @@ export default function CameraStream() {
             </DialogDescription>
           </DialogHeader>
           <DialogClose asChild>
-            <Button onClick={() => router.push('/')} variant="outline">Close in {countdown}</Button>
+            <Button className="h-20"  onClick={() => router.push('/')} variant="outline">Close in {countdown}</Button>
           </DialogClose>
         </DialogContent>
       </Dialog>

@@ -6,14 +6,18 @@ import { useRouter } from 'next/navigation'
 import Video from "@/component/Video";
 import io from 'socket.io-client';
 
+
 export default function CameraStream() {
+  const [openAlertSuccess, setOpenAlertSuccess] = useState(false);
   const router = useRouter()
   useEffect(() => {
     return () => {
       localStorage.removeItem("userId"); // ลบข้อมูลเมื่อออกจากหน้า
       console.log("clear local storage success")
+      
     };
   }, []);
+
 
   
 
@@ -31,10 +35,13 @@ export default function CameraStream() {
         <p style={{fontSize:'24px' , color:'#fff'}}>Welcome to <b style={{color :'#74C91B'}}>EcoCycle Solution</b> – AI-Powered Waste Management for Organizations</p>
         <p style={{color:'#fff'}}>At <b style={{color :'#74C91B'}}>ECOS</b>, we harness the power of AI to revolutionize waste management for businesses  and organizations.<br></br> 
          Our intelligent solutions help you optimize waste disposal, reduce environmental impact,
-         <br></br>  and enhance sustainability efforts with real-time data and smart automation.</p>
+         <br></br>  and enhance sustainability efforts with real-time data and smart automation.
+         </p>
         
         
       </div>
+
+      
     </div>
   );
 }

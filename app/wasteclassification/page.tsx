@@ -31,6 +31,7 @@ export default function CameraStream() {
   const [errorResult, setErrorResult] = useState(false);
 
   const [openSensor, setOpenSensor] = useState(false);
+  const [openAlertSuccess, setOpenAlertSuccess] = useState(false);
   const [sensorData, setSensorData] = useState(false);
   const [sensorDataTrigger, setSensorDataTrigger] = useState(false);
   const [uploadWaste, setUploadWaste] = useState(false);
@@ -39,7 +40,6 @@ export default function CameraStream() {
   const [message, setMessage] = useState('')
 
   const handleSend = async () => {
-
     const res = await fetch('http://192.168.1.121:8000/send-fixed-email', {
       method: 'POST',
       headers: {
@@ -56,6 +56,24 @@ export default function CameraStream() {
     } else {
       setMessage('❌ Failed: ' + data.detail)
     }
+  }
+
+  const handlePointsDeducted = async () => {
+    console.log("User Id Check", userid)
+
+    const response = await fetch("http://192.168.1.121:8000/updateUserPointDeducted/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id : userid,
+        deducted_point : point,
+      }),
+    });
+
+    const result = await response.json();
+    console.log("Point : "+result);
   }
 
   const [ip, setIp] = useState("Loading...");
@@ -202,19 +220,12 @@ export default function CameraStream() {
     
   };
 
-
-
   const startCaptureAgain = () => {
     openCamera();
     setErrorResult(false)
     setIsUploading(true)
     setFrameCount(0); // รีเซ็ตจำนวนภาพ
     setIsCapturing(true); // เริ่มถ่ายภาพ
-  };
-
-  
-  const checkSensor = () => {
-    return true;
   };
 
   const updatePoint = async () => {
@@ -306,8 +317,11 @@ export default function CameraStream() {
               cleanupSocket();
               
             }
-  
-            router.push('/');
+
+            if (countdown === 1) {
+              router.push('/');
+            }
+            
             clearInterval(timer);
             return 0;
           }
@@ -331,9 +345,12 @@ export default function CameraStream() {
         handleSend();
       } else if (sensorData === true) {
         updatePoint();
+        setOpenAlertSuccess(true);
       }
-  
-      router.push('/');
+      setTimeout(function() {
+        router.push('/');
+      }, 5000); // หน่วงเวลา 2000 มิลลิวินาที (2 วินาที)
+      
     }
   }, [sensorDataTrigger]);
   
@@ -611,7 +628,20 @@ export default function CameraStream() {
         </DialogContent>
       </Dialog>
 
-      
+      <Dialog modal open={openAlertSuccess} onOpenChange={setOpenAlertSuccess}>
+        <DialogContent className="sm:max-w-[90%] md:max-w-[80%] lg:max-w-[70%] h-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-center text-3xl text-[#74C91B]">Alert Success</DialogTitle>
+            <DialogDescription>
+              <p className="text-center text-2xl" style={{color:'#74C91B'}}>ขอบคุณที่ทิ้งขยะถูกถังค่ะ</p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogClose asChild>
+            {/* <Button className="h-20"  onClick={() => router.push('/')} variant="outline">Close in {countdown}</Button> */}
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
